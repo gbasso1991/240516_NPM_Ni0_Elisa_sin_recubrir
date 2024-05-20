@@ -389,7 +389,7 @@ for k in range(len(fnames_m)):
         - Espectro (f,amp,phi) de referencia (fem de campo)
     '''
     # MOMENTO FOURIER
-    if Analisis_de_Fourier == 1:
+    if Analisis_de_Fourier == 1 and k>1:
         _, _, muestra_rec_impar,delta_phi_0,f_0,amp_0,fase_0, espectro_f_amp_fase_m,espectro_ref = fourier_señales_5(t_m_3,Resta_m_3,v_r_m_3,
                                                                                                         delta_t=delta_t[k],polaridad=polaridad,
                                                                                                         filtro=0.05,frec_limite=2*N_armonicos_impares*frec_final_m,
