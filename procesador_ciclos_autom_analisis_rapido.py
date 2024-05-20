@@ -54,6 +54,7 @@ N_armonicos_impares = 30
 concentracion =10*1e3 #[concentracion]= g/m^3 (1 g/l == 1e3 g/m^3) (Default = 10000 g/m^3)
 capsula_glucosa=0   # capsula para solventes organicos
 detector_ciclos_descartables=True #en funcion a Mag max para evitar guardar/promediar con ciclos in/out 
+Ciclo_promedio=1
 #¿Qué gráficos desea ver? (1 = sí, ~1 = no)
 graficos={
         'Referencias_y_ajustes': 0,
@@ -102,10 +103,12 @@ print(f'''
 #%%Defino listas para almacenar datos en cada iteracion
 long_arrays=[]
 Ciclos_eje_H = []
-Ciclos_eje_H_sf = []
 Ciclos_eje_M = []
 Ciclos_eje_M_filt =[]
-
+Ciclos_tiempo=[]
+Ciclos_eje_H_ua=[]
+Ciclos_eje_M_ua=[]
+    
 Frecuencia_ref_muestra_kHz = []
 Frecuencia_ref_fondo_kHz = []
 Frec_fund=[]
@@ -402,11 +405,7 @@ for k in range(len(fnames_m)):
         print(f'N de periodos enteros: {N_ciclos_m}')
         print(f'Num de samples: {len(Resta_m_3)}')
         
-        '''
-        Calculo de SAR
-        A partir de Julio 23 calculamos tau & SAR a partir 
-        del analisis armonico sobre señal de fem
-        '''
+        #CALCULO SAR
         Hmax=max(campo_m)
         N = len(Resta_m_3)
         sar = mu_0*Hmax*(amp_0*C_Vs_to_Am_magnetizacion)*np.sin(delta_phi_0)/(concentracion*N)
@@ -418,21 +417,6 @@ for k in range(len(fnames_m)):
         # TAU a partir de la FASE 
         tau=np.tan(delta_phi_0)/(2*np.pi*frec_final_m)
         
-        #salvo espectros en ASCII, excepto para el fondo01
-        # if 'fondo' not in fnames_m[k]:  
-        #     ciclo_out = Table([col for col in espectro_f_amp_fase_m])
-        #     encabezado = ['Frecuencia_Hz','Amplitud', 'Fase']
-        #     formato = {'Frecuencia_Hz':'%e','Amplitud':'%e', 'Fase':'%e'} 
-        #     ciclo_out.meta['comments'] = [fnames_m[k][:-4],
-        #                                   f'Frecuencia_campo_Hz_=_{espectro_ref[0]}',
-        #                                   f'Magnitud_campo_Hz_=_{espectro_ref[1]}',
-        #                                   f'Fase_campo_=_{espectro_ref[2]}',
-        #                                   f'Concentracion g/m^3_=_{concentracion}',
-        #                                   f'C_Vs_to_Am_M_A/Vsm_=_{C_Vs_to_Am_magnetizacion}',
-        #                                   f'pendiente_HvsI_1/m_=_{pendiente_HvsI}',
-        #                                   f'ordenada_HvsI_A/m_=_{ordenada_HvsI}\n']
-            # ascii.write(ciclo_out,fnames_m[k][:-4] + '_espectro.dat',
-            #             names=encabezado,overwrite=True,delimiter='\t',formats=formato)
         # Hasta aca lo que tiene que ver con analisis armonico
         '''
         Reemplazo señal recortada con la filtrada en armonicos impares: 
@@ -465,7 +449,7 @@ for k in range(len(fnames_m)):
         plt.grid()
         plt.xlabel('t (s)')
         plt.title('Campo y magnetización normalizados de la muestra\n'+fnames_m[k][:-4])
-        plt.savefig(fnames_m[k]+'_H_M_norm.png',dpi=200,facecolor='w')    
+        plt.savefig(os.path.join(output_dir,os.path.commonprefix(fnames_m),'_H_M_norm.png'),dpi=200,facecolor='w')    
     '''
     Campo Coercitivo (Hc) y Magnetizacion Remanente (Mr) 
     '''
@@ -509,7 +493,7 @@ for k in range(len(fnames_m)):
         plt.title('Ciclo de histéresis de la muestra\n'+fnames_m[k][:-4])
         plt.text(0.75,0.25,f'T = {temp_m[k]} °C\nSAR = {sar:0.1f} W/g',fontsize=13,bbox=dict(color='tab:red',alpha=0.6),
                  va='center',ha='center',transform=ax.transAxes)
-        plt.savefig(fnames_m[k][:-4]+ '_ciclo_H_M.png',dpi=200,facecolor='w')
+        plt.savefig(os.path.join(output_dir,os.path.commonprefix(fnames_m),'_ciclo_H_M.png'),dpi=200,facecolor='w')
     
     # Xi Susceptibilidad a M=0 (excepto ultimo archivo que es el control de descancelacion)
     if k != len(fnames_m):
@@ -525,33 +509,6 @@ for k in range(len(fnames_m)):
             except UnboundLocalError:
                 print('Error al determinar el cruce por M=0')
                 susc_a_M_0=0
-    #plt.close(fig='all')   #cierro todas las figuras
-
-    # '''
-    # Exporto ciclos de histeresis en ASCII, primero en V.s, despues en A/m : 
-    # | Tiempo (s) | Campo (V.s) | Magnetizacion (V.s) | Campo (A/m) |  Magnetizacion (A/m)
-    # '''
-    # col0 = t_f_m - t_f_m[0]
-    # col1 = campo_ua_m
-    # col2 = magnetizacion_ua_m
-    # col3 = campo_m/1000 #kA/m
-    # col4 = magnetizacion_m_filtrada#A/m
-    
-    # ciclo_out = Table([col0, col1, col2,col3,col4])
-
-    # encabezado = ['Tiempo_(s)','Campo_(V.s)', 'Magnetizacion_(V.s)','Campo_(kA/m)', 'Magnetizacion_(A/m)']
-    # formato = {'Tiempo_(s)':'%e' ,'Campo_(V.s)':'%e','Magnetizacion_(V.s)':'%e','Campo_(kA/m)':'%e','Magnetizacion_(A/m)':'%e'} 
-    
-    # ciclo_out.meta['comments'] = [f'Temperatura_=_{temp_m[k]}',
-    #                               f'Concentracion g/m^3_=_{concentracion}',
-    #                               f'C_Vs_to_Am_M_A/Vsm_=_{C_Vs_to_Am_magnetizacion}',
-    #                               f'pendiente_HvsI_1/m_=_{pendiente_HvsI}',
-    #                               f'ordenada_HvsI_A/m_=_{ordenada_HvsI}',
-    #                               f'frecuencia_Hz_=_{frec_final_m}\n']
-    
-    # ascii.write(ciclo_out,fnames_m[k][:-4] + '_ciclo_H_M.dat',
-    #             names=encabezado,overwrite=True,delimiter='\t',formats=formato)
-    
     '''
     Lleno listas de resultados,
     al salir del loop miro que la Mmax de 
@@ -574,7 +531,10 @@ for k in range(len(fnames_m)):
     # cociente_f1_f0.append(espectro_f_amp_fase_m[1][1]/espectro_f_amp_fase_m[1][0])
     # cociente_f2_f0.append(espectro_f_amp_fase_m[1][2]/espectro_f_amp_fase_m[1][0])
 
-    #Reconstruccion impar, integracion 
+    #Reconstruccion impar, integracion
+    Ciclos_tiempo.append(t_f_m[:] - t_f_m[0])
+    Ciclos_eje_H_ua.append(campo_ua_m)
+    Ciclos_eje_M_ua.append(magnetizacion_ua_m)
     Ciclos_eje_H.append(campo_m)
     Ciclos_eje_M.append(magnetizacion_m)
     Ciclos_eje_M_filt.append(magnetizacion_m_filtrada)
@@ -583,69 +543,114 @@ for k in range(len(fnames_m)):
     Coercitividad_kAm.append(Hc_mean/1000)          #Campo coercitivo en kA/m
     Remanencia_Am.append(Mr_mean)                   #Magnetizacion remanente en kA/m
     xi_M_0.append(susc_a_M_0)                       #Sin unidades
+    
+    # #% EXPORTO CICLOS HM 
+    # '''
+    # Exporto ciclos de histeresis en ASCII, primero en V.s, despues en A/m : 
+    # | Tiempo (s) | Campo (V.s) | Magnetizacion (V.s) | Campo (A/m) |  Magnetizacion (A/m)
+    # '''
+    # col0 = t_f_m - t_f_m[0]
+    # col1 = campo_ua_m
+    # col2 = magnetizacion_ua_m
+    # col3 = campo_m/1000 #kA/m
+    # col4 = magnetizacion_m_filtrada#A/m
+    
+    # ciclo_out = Table([col0, col1, col2,col3,col4])
+
+    # encabezado = ['Tiempo_(s)','Campo_(V.s)', 'Magnetizacion_(V.s)','Campo_(kA/m)', 'Magnetizacion_(A/m)']
+    # formato = {'Tiempo_(s)':'%e' ,'Campo_(V.s)':'%e','Magnetizacion_(V.s)':'%e','Campo_(kA/m)':'%e','Magnetizacion_(A/m)':'%e'} 
+    
+    # ciclo_out.meta['comments'] = [f'Temperatura_=_{temp_m[k]}',
+    #                               f'Concentracion g/m^3_=_{concentracion}',
+    #                               f'C_Vs_to_Am_M_A/Vsm_=_{C_Vs_to_Am_magnetizacion}',
+    #                               f'pendiente_HvsI_1/m_=_{pendiente_HvsI}',
+    #                               f'ordenada_HvsI_A/m_=_{ordenada_HvsI}',
+    #                               f'frecuencia_Hz_=_{frec_final_m}\n']
+    
+    # output_file = os.path.join(output_dir, fnames_m[k][:-4] + '_ciclo_H_M.txt')
+    # ascii.write(ciclo_out,output_file,names=encabezado,overwrite=True,delimiter='\t',formats=formato)
+
+    
 plt.close('all')
 #%% DETECTOR CICLOS DESCARTABLES
 if detector_ciclos_descartables:
     # Listas para almacenar los índices
     indx_in = []
     indx_out = []
+
     print('Files In:')
     # Verificar los primeros 10 elementos
     for i, M in enumerate(Mag_max[:10]):
         if M < 0.95*np.mean(Mag_max[10:-10]):
             indx_in.append(i)
             print(fnames_m[i])
-    # Verificar los últimos 10 elementos
-
+    # Verificar los últimos 9 elementos
     print('\nFiles Out:')
     for i, M in enumerate(Mag_max[-10:-1]):
         if M < 0.95*np.mean(Mag_max[10:-10]):
             indx_out.append(len(Mag_max) - 10 + i)
-            print(fnames_m[len(Mag_max) - 10 + i]) 
+            print(fnames_m[len(Mag_max) - 10 + i])
 #%% muevo archivos 
 import shutil
 indices_to_move = indx_in[1:] + indx_out[:-1]
 
 # Directorio de destino
 output_dir_ciclos_descartados= os.path.join(output_dir,'ciclos_descartados')
-# Crear el subdirectorio si no existe
-if not os.path.exists(output_dir_ciclos_descartados):
+if not os.path.exists(output_dir_ciclos_descartados):# Crear el subdirectorio si no existe
     os.makedirs(output_dir_ciclos_descartados)
 
+files_to_move=[fnames_m[f] for f  in indices_to_move]
 filepaths_to_move=[path_m[f] for f  in indices_to_move]
 # Mover archivos al subdirectorio
 for fp in filepaths_to_move:
     shutil.move(fp, output_dir_ciclos_descartados)
-    print(f"Moved {file_to_move} to {output_dir_ciclos_descartados}")
-#Renombro fondo00 y fondo01
-# Rutas de los archivos antiguos y nuevos nombres
-old_path_1 = path_f[0]
-new_path_1 = os.path.join(path_f[0][:-4],'_fondo.txt')
+    print(f"Moved {files_to_move} to {output_dir_ciclos_descartados}")
 
-old_path_2 = path_m[-1]
-new_path_2 = os.path.join(path_f[0][:-4],'_descancelacion.txt')
+#%% PLOTEO TODOS LOS CICLOS RAW
 
-# Renombrar Archivo 1
-try:
-    shutil.move(old_path_1, new_path_1)
-    print(f"Renombrado {old_path_1} a {new_path_1}")
-except FileNotFoundError:
-    print(f"El archivo {old_path_1} no existe.")
-except PermissionError:
-    print(f"No se tienen permisos suficientes para renombrar {old_path_1}.")
+if graficos['Ciclos_HM_m_todos']==1:
+    fig = plt.figure(figsize=(9,7),constrained_layout=True)
+    ax = fig.add_subplot(1,1,1)
 
-# Renombrar Archivo 2
-try:
-    shutil.move(old_path_2, new_path_2)
-    print(f"Renombrado {old_path_2} a {new_path_2}")
-except FileNotFoundError:
-    print(f"El archivo {old_path_2} no existe.")
-except PermissionError:
-    print(f"No se tienen permisos suficientes para renombrar {old_path_2}.")
+    for i in indices_to_move:
+        plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],label=f'{fnames_m[i].split("_")[-1].split(".")[0]:<4s}',alpha=0.8)
 
-#%%procedo a recortar las listas
+    cmap = mpl.colormaps['jet']
+    norm = plt.Normalize(temp_m[max(indx_in):min(indx_out)].min(), temp_m[max(indx_in):min(indx_out)].max())# Crear un rango de colores basado en las temperaturas y el cmap
+    
+    for i in range(indx_in[-1]+1,indx_out[0]): 
+        color = cmap(norm(temp_m[i]))
+        plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],color=color)
+
+    plt.plot(Ciclos_eje_H[-1]/1000,Ciclos_eje_M[-1],'-',color='k',label='fondo')
+ 
+plt.legend(title='Ciclos descartados',ncol=2,loc='best',fancybox=True)
+
+# # Configurar la barra de colores
+sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+sm.set_array([])  # Esto es necesario para que la barra de colores muestre los valores correctos
+plt.colorbar(sm, label='Temperatura',ax=ax)  # Agrega una etiqueta adecuada
+#lt.text(0.15,0.75,,fontsize=20,bbox=dict(color='tab:orange',alpha=0.7),transform=ax.transAxes)
+plt.grid()
+plt.xlabel('H (kA/m)',fontsize=15)
+plt.ylabel('M (A/m)',fontsize=15)
+plt.suptitle('Ciclos de histéresis (sin filtrar)',fontsize=20)
+plt.title(f'{frec_nombre[0]/1000:>3.0f} kHz - {round(np.mean(Campo_maximo)/1e3):>4.1f} kA/m',loc='center',fontsize=15)
+plt.savefig(os.path.join(output_dir,os.path.commonprefix(fnames_m)+'_ciclos_MH_raw.png'),dpi=300,facecolor='w')
+
+#%% RECORTO LISTAS 
+
 fnames_m=fnames_m[max(indx_in)+1:min(indx_out)]
 temp_m=temp_m[max(indx_in)+1:min(indx_out)]
+time_m=time_m[max(indx_in)+1:min(indx_out)]
+Ciclo_descancelacion_H=Ciclos_eje_H[-1]
+Ciclo_descancelacion_M=Ciclos_eje_M[-1]
+Ciclo_descancelacion_M_filt=Ciclos_eje_M_filt[-1]
+
+Ciclos_eje_H=Ciclos_eje_H[max(indx_in)+1:min(indx_out)] 
+Ciclos_eje_M=Ciclos_eje_M[max(indx_in)+1:min(indx_out)]
+Ciclos_eje_M_filt=Ciclos_eje_M_filt[max(indx_in)+1:min(indx_out)]
+
 Remanencia_Am=Remanencia_Am[max(indx_in)+1:min(indx_out)]
 Coercitividad_kAm=Coercitividad_kAm[max(indx_in)+1:min(indx_out)]
 Campo_maximo=Campo_maximo[max(indx_in)+1:min(indx_out)]
@@ -659,48 +664,66 @@ xi_M_0=xi_M_0[max(indx_in)+1:min(indx_out)]
 cociente_f1_f0=cociente_f1_f0[max(indx_in)+1:min(indx_out)]
 cociente_f2_f0=cociente_f2_f0[max(indx_in)+1:min(indx_out)]
 long_arrays=long_arrays[max(indx_in)+1:min(indx_out)]
-time_m=time_m[max(indx_in)+1:min(indx_out)]
-Ciclo_descancelacion_H=Ciclos_eje_H[-1]
-Ciclo_descancelacion_M=Ciclos_eje_M[-1]
-Ciclo_descancelacion_M_filt=Ciclos_eje_M_filt[-1]
+#%%
+#CICLO PROMEDIO
+if Ciclo_promedio:
+    min_len_t = min([len(f) for f in Ciclos_tiempo])
+    min_len_H_ua=min([len(f) for f in Ciclos_eje_H_ua])
+    min_len_M_ua=min([len(f) for f in Ciclos_eje_M_ua])
+    min_len_H=min([len(f) for f in Ciclos_eje_H])
+    min_len_M=min([len(f) for f in Ciclos_eje_M])
+    
+    t0=Ciclos_tiempo[0][:min_len_t]
+    H0_ua=Ciclos_eje_H_ua[0][:min_len_H_ua]
+    M0_ua=Ciclos_eje_M_ua[0][:min_len_M_ua]
+    H0=Ciclos_eje_H[0][:min_len_H]
+    M0=Ciclos_eje_M_filt[0][:min_len_M]
+    
+    for i in range(1,len(fnames_m)):
 
-Ciclos_eje_H=Ciclos_eje_H[max(indx_in)+1:min(indx_out)] 
-Ciclos_eje_M=Ciclos_eje_M[max(indx_in)+1:min(indx_out)]
-Ciclos_eje_M_filt=Ciclos_eje_M_filt[max(indx_in)+1:min(indx_out)]
+        t0=t0 + Ciclos_tiempo[i][:min_len_t]
+        #min_len_H_ua = min(len(H0_ua),len(campo_ua_m))
+        H0_ua=H0_ua+ Ciclos_eje_H_ua[i][:min_len_H_ua]
+        
+        # min_len_M_ua = min(len(M0_ua),len(magnetizacion_ua_m))
+        M0_ua=M0_ua+ Ciclos_eje_M_ua[i][:min_len_M_ua]
+        
+        # min_len_H = min(len(H0),len(campo_m))
+        H0=H0+Ciclos_eje_H[i][:min_len_H]
+        
+        # min_len_M = min(len(M0),len(magnetizacion_m_filtrada))
+        M0=M0+Ciclos_eje_M_filt[i][:min_len_M]
 
-#%% PLOTEO TODOS LOS CICLOS RAW
-cmap = mpl.colormaps['jet'] #'viridis'  
-norm = plt.Normalize(temp_m.min(), temp_m.max())# Crear un rango de colores basado en las temperaturas y el cmap
+        Num_ciclos_m=len(fnames_m)
 
-if graficos['Ciclos_HM_m_todos']==1:
-    fig = plt.figure(figsize=(9,7),constrained_layout=True)
-    ax = fig.add_subplot(1,1,1)
+        t_prom= t0/Num_ciclos_m
+        H_prom_ua=H0_ua/Num_ciclos_m
+        M_prom_ua=M0_ua/Num_ciclos_m 
+        H_prom=H0/Num_ciclos_m
+        M_prom=M0/Num_ciclos_m
+'''
+Exporto ciclos promedio en ASCII, primero en V.s, despues en A/m : 
+| Tiempo (s) | Campo (V.s) | Magnetizacion (V.s) | Campo (A/m) |  Magnetizacion (A/m)
+'''
+ciclo_out = Table([t_prom,H_prom_ua/1e3,M_prom_ua,H_prom/1e3,M_prom])
 
-    for i in range(len(fnames_m)): 
-        color = cmap(norm(temp_m[i]))
-        plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],color=color,label=f'{fnames_m[i].split("_")[-1].split(".")[0]:<4s} {temp_m[i]:>5.1f} ºC')
+encabezado = ['Tiempo_(s)','Campo_(V.s)', 'Magnetizacion_(V.s)','Campo_(kA/m)', 'Magnetizacion_(A/m)']
+formato = {'Tiempo_(s)':'%e' ,'Campo_(V.s)':'%e','Magnetizacion_(V.s)':'%e','Campo_(kA/m)':'%e','Magnetizacion_(A/m)':'%e'} 
 
-    plt.plot(Ciclo_descancelacion_H/1000,Ciclo_descancelacion_M,'.-',color='k',label='fondo')
+ciclo_out.meta['comments'] = [f'Temperatura_=_{np.mean(temp_m)}',
+                                f'Concentracion g/m^3_=_{concentracion}',
+                                f'C_Vs_to_Am_M_A/Vsm_=_{C_Vs_to_Am_magnetizacion}',
+                                f'pendiente_HvsI_1/m_=_{pendiente_HvsI}',
+                                f'ordenada_HvsI_A/m_=_{ordenada_HvsI}',
+                                f'frecuencia_Hz_=_{frec_final_m}',
+                                f'Promedio de {Num_ciclos_m} ciclos\n']
+
+output_file = os.path.join(output_dir, os.path.commonprefix(fnames_m) + '_ciclo_promedio_H_M.txt')# Especificar la ruta completa del archivo de salida
+ascii.write(ciclo_out,output_file,names=encabezado,overwrite=True,delimiter='\t',formats=formato)
  
-plt.legend(loc='upper center',bbox_to_anchor=(0.5,-0.1),ncol=4,fancybox=True)
-
-# # Configurar la barra de colores
-sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-sm.set_array([])  # Esto es necesario para que la barra de colores muestre los valores correctos
-plt.colorbar(sm, label='Temperatura',ax=ax)  # Agrega una etiqueta adecuada
-
-
-plt.text(0.15,0.75,f'{frec_nombre[0]/1000:>3.0f} kHz\n{round(np.mean(Campo_maximo)/1e3):>4.1f} kA/m',fontsize=20,bbox=dict(color='tab:orange',alpha=0.7),transform=ax.transAxes)
-plt.grid()
-plt.xlabel('H (kA/m)',fontsize=15)
-plt.ylabel('M (A/m)',fontsize=15)
-plt.suptitle('Ciclos de histéresis (sin filtrar)',fontsize=22)
-# plt.title(fecha_graf +' Sin filtrado',loc='left',fontsize=13)
-
-# plt.savefig(os.path.commonprefix(fnames_m)+'_ciclos_MH_raw.png',dpi=300,facecolor='w')
 
 #%% PLOTEO TODOS LOS CICLOS FILTRADOS IMPAR
-# cmap = mpl.colormaps['jet'] #'viridis'
+# cmap = mpl.colormaps['jet'] 
 # norm = plt.Normalize(temp_m.min(), temp_m.max())# Crear un rango de colores basado en las temperaturas y el cmap
 
 if Analisis_de_Fourier==1:
@@ -708,11 +731,11 @@ if Analisis_de_Fourier==1:
     ax = fig.add_subplot(1,1,1)
     for i in range(len(fnames_m)):
             color = cmap(norm(temp_m[i]))
-            plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M_filt[i],'-',color=color,label=f'{fnames_m[i].split("_")[-1].split(".")[0]:<4s} {temp_m[i]:>5.1f} ºC')
+            plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M_filt[i],'-',color=color)
 
-    plt.plot(Ciclo_descancelacion_H/1000,Ciclo_descancelacion_M_filt,'-',color='k',label='fondo')
-
-# plt.legend(loc='upper center',bbox_to_anchor=(0.5,-0.1),ncol=3,fancybox=True)
+    plt.plot(Ciclo_descancelacion_H/1000,Ciclo_descancelacion_M_filt,'-',color='k',label='Descancelación')
+    plt.plot(H_prom/1000,M_prom,'-.',label=f'Ciclo promedio ({Num_ciclos_m} ciclos)')
+plt.legend(loc='lower right',fancybox=True)
 
 # Configurar la barra de colores
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -724,7 +747,7 @@ plt.grid()
 plt.xlabel('H (kA/m)',fontsize=15)
 plt.ylabel('M (A/m)',fontsize=15)
 plt.title(fecha_graf + f'   {N_armonicos_impares} arm impares',loc='left',fontsize=13)
-plt.suptitle('Ciclos de histéresis (filtrado impar)',fontsize=22)
+plt.suptitle('Ciclos de histéresis (filtrado impar)',fontsize=20)
 plt.savefig(os.path.join(output_dir,os.path.commonprefix(fnames_m)+'_ciclos_MH.png'),dpi=300,facecolor='w')
 # plt.show()
 
@@ -799,9 +822,6 @@ resultados_out.meta['comments'] = ['Configuracion:',
 output_file2=os.path.join(output_dir,os.path.commonprefix(fnames_m)+'_resultados.txt')
 ascii.write(resultados_out,output_file2,names=encabezado,overwrite=True,
 delimiter='\t',formats=formato)
-#%% PRINTEO DE ARCHIVOS DESCARGADOS Y DESCARTE
-
-
 
 
 # #%% dphi | tau | SAR
