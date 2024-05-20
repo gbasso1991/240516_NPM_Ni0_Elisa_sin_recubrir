@@ -41,6 +41,7 @@ from astropy.table import Table, Column, MaskedColumn
 from sklearn.metrics import r2_score
 from pprint import pprint
 from scipy.optimize import curve_fit
+import shutil
 from funciones_procesado import medida_cruda, medida_cruda_autom,ajusta_seno, sinusoide,resta_inter,filtrando_ruido,recorte,promediado_ciclos,fourier_señales_5,lector_templog_2,lector_templog,susceptibilidad_M_0
 
 #%% Configuracion de Script
@@ -389,7 +390,7 @@ for k in range(len(fnames_m)):
         - Espectro (f,amp,phi) de referencia (fem de campo)
     '''
     # MOMENTO FOURIER
-    if Analisis_de_Fourier == 1 and k>1:
+    if Analisis_de_Fourier == 1:
         _, _, muestra_rec_impar,delta_phi_0,f_0,amp_0,fase_0, espectro_f_amp_fase_m,espectro_ref = fourier_señales_5(t_m_3,Resta_m_3,v_r_m_3,
                                                                                                         delta_t=delta_t[k],polaridad=polaridad,
                                                                                                         filtro=0.05,frec_limite=2*N_armonicos_impares*frec_final_m,
@@ -435,7 +436,7 @@ for k in range(len(fnames_m)):
     Asigno unidades a la magnetizacion utilizando la calibracion que esta al principio del script
     '''
     magnetizacion_m = C_Vs_to_Am_magnetizacion*magnetizacion_ua_m #[magnetizacion_m]=A/m
-    magnetizacion_m_filtrada = C_Vs_to_Am_magnetizacion*magnetizacion_ua_m_filtrada #[magnetizacion_m_filtrada]=A/m
+    magnetizacion_m_filtrada = C_Vs_to_Am_magnetizacion*magnetizacion_ua_m #[magnetizacion_m_filtrada]=A/m
     '''
     Ploteo H(t) y M(t) normalizados
     '''
@@ -573,56 +574,53 @@ for k in range(len(fnames_m)):
     
 plt.close('all')
 #%% DETECTOR CICLOS DESCARTABLES
-if detector_ciclos_descartables:
-    # Listas para almacenar los índices
-    indx_in = []
-    indx_out = []
+fnames_m=np.array(fnames_m)
 
-    print('Files In:')
-    # Verificar los primeros 10 elementos
-    for i, M in enumerate(Mag_max[:10]):
-        if M < 0.95*np.mean(Mag_max[10:-10]):
-            indx_in.append(i)
-            print(fnames_m[i])
-    # Verificar los últimos 9 elementos
-    print('\nFiles Out:')
-    for i, M in enumerate(Mag_max[-10:-1]):
-        if M < 0.95*np.mean(Mag_max[10:-10]):
-            indx_out.append(len(Mag_max) - 10 + i)
-            print(fnames_m[len(Mag_max) - 10 + i])
-#%% muevo archivos 
-import shutil
-indices_to_move = indx_in[1:] + indx_out[:-1]
+if detector_ciclos_descartables:
+    archivos_in_out=10
+    porcentaje_diferencia=4 #%
+    print(f'Se identifican archivos cuya Mag maxima difieren un {porcentaje_diferencia}% de la')
+    print(f'Mag max promedio = {np.mean(Mag_max[archivos_in_out:-archivos_in_out]):.0f}({np.std(Mag_max[archivos_in_out:-archivos_in_out]):.0f}) A/m de los {len(Mag_max[archivos_in_out:-archivos_in_out])} valores centrales.')
+    
+    indx_discard = np.nonzero((Mag_max[:-1]>(1+porcentaje_diferencia/100)*np.mean(Mag_max[archivos_in_out:-archivos_in_out])) | (Mag_max[:-1]<(1-porcentaje_diferencia/100)*np.mean(Mag_max[archivos_in_out:-archivos_in_out])))[0]
+    for ind in indx_discard:
+        print(' ->',fnames_m[ind])
+        
+print(f'\nDescartamos {len(indx_discard)} archivos de un total de {len(fnames_m)}.')
+print(f'\nArchivo {fnames_f[0]} identificado como Fondo.')
+print(f'Archivo {fnames_m[-1]} identificado como Descancelacion.')
+
+#% muevo archivos 
 
 # Directorio de destino
 output_dir_ciclos_descartados= os.path.join(output_dir,'ciclos_descartados')
 if not os.path.exists(output_dir_ciclos_descartados):# Crear el subdirectorio si no existe
     os.makedirs(output_dir_ciclos_descartados)
 
-files_to_move=[fnames_m[f] for f  in indices_to_move]
-filepaths_to_move=[path_m[f] for f  in indices_to_move]
+files_to_move=[fnames_m[f] for f  in indx_discard]
+filepaths_to_move=[path_m[f] for f  in indx_discard]
 # Mover archivos al subdirectorio
 for fp in filepaths_to_move:
-    shutil.move(fp, output_dir_ciclos_descartados)
-    print(f"Moved {files_to_move} to {output_dir_ciclos_descartados}")
+    shutil.copy(fp, output_dir_ciclos_descartados)
+    #print(f"Copied {fp.split('/')[-1]} to {output_dir_ciclos_descartados}")
+
 
 #%% PLOTEO TODOS LOS CICLOS RAW
+indices_to_stay = np.setdiff1d(np.arange(len(fnames_m)-1), indx_discard)
 
 if graficos['Ciclos_HM_m_todos']==1:
     fig = plt.figure(figsize=(9,7),constrained_layout=True)
     ax = fig.add_subplot(1,1,1)
 
-    for i in indices_to_move:
-        plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],label=f'{fnames_m[i].split("_")[-1].split(".")[0]:<4s}',alpha=0.8)
 
-    cmap = mpl.colormaps['jet']
-    norm = plt.Normalize(temp_m[max(indx_in):min(indx_out)].min(), temp_m[max(indx_in):min(indx_out)].max())# Crear un rango de colores basado en las temperaturas y el cmap
-    
-    for i in range(indx_in[-1]+1,indx_out[0]): 
+    for i in indx_discard: #Ciclos in
+        plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],'o',label=f'{fnames_m[i].split("_")[-1].split(".")[0]:<4s}',alpha=0.7)
+
+    for i in indices_to_stay: #Ciclos aceptados
         color = cmap(norm(temp_m[i]))
         plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],color=color)
-
-    plt.plot(Ciclos_eje_H[-1]/1000,Ciclos_eje_M[-1],'-',color='k',label='fondo')
+    #plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],color=color,label=fnames_m[i])
+    plt.plot(Ciclos_eje_H[-1]/1000,Ciclos_eje_M[-1],'-',color='k') #Descancelacion
  
 plt.legend(title='Ciclos descartados',ncol=2,loc='best',fancybox=True)
 
@@ -636,34 +634,34 @@ plt.xlabel('H (kA/m)',fontsize=15)
 plt.ylabel('M (A/m)',fontsize=15)
 plt.suptitle('Ciclos de histéresis (sin filtrar)',fontsize=20)
 plt.title(f'{frec_nombre[0]/1000:>3.0f} kHz - {round(np.mean(Campo_maximo)/1e3):>4.1f} kA/m',loc='center',fontsize=15)
-plt.savefig(os.path.join(output_dir,os.path.commonprefix(fnames_m)+'_ciclos_MH_raw.png'),dpi=300,facecolor='w')
+plt.savefig(os.path.join(output_dir,os.path.commonprefix(list(fnames_m))+'_ciclos_MH_raw.png'),dpi=300,facecolor='w')
 
 #%% RECORTO LISTAS 
 
-fnames_m=fnames_m[max(indx_in)+1:min(indx_out)]
-temp_m=temp_m[max(indx_in)+1:min(indx_out)]
-time_m=time_m[max(indx_in)+1:min(indx_out)]
+fnames_m=fnames_m[indices_to_stay]
+temp_m=temp_m[indices_to_stay]
+time_m=time_m[indices_to_stay[0]:indices_to_stay[-1]+1]
 Ciclo_descancelacion_H=Ciclos_eje_H[-1]
 Ciclo_descancelacion_M=Ciclos_eje_M[-1]
 Ciclo_descancelacion_M_filt=Ciclos_eje_M_filt[-1]
 
-Ciclos_eje_H=Ciclos_eje_H[max(indx_in)+1:min(indx_out)] 
-Ciclos_eje_M=Ciclos_eje_M[max(indx_in)+1:min(indx_out)]
-Ciclos_eje_M_filt=Ciclos_eje_M_filt[max(indx_in)+1:min(indx_out)]
+Ciclos_eje_H=Ciclos_eje_H[indices_to_stay[0]:indices_to_stay[-1]+1] 
+Ciclos_eje_M=Ciclos_eje_M[indices_to_stay[0]:indices_to_stay[-1]+1]
+Ciclos_eje_M_filt=Ciclos_eje_M_filt[indices_to_stay[0]:indices_to_stay[-1]+1]
 
-Remanencia_Am=Remanencia_Am[max(indx_in)+1:min(indx_out)]
-Coercitividad_kAm=Coercitividad_kAm[max(indx_in)+1:min(indx_out)]
-Campo_maximo=Campo_maximo[max(indx_in)+1:min(indx_out)]
-Mag_max=Mag_max[max(indx_in)+1:min(indx_out)]
-Frec_fund=Frec_fund[max(indx_in)+1:min(indx_out)]
-Magnitud_1er_arm=Magnitud_1er_arm[max(indx_in)+1:min(indx_out)]
-Defasaje_1er_arm=Defasaje_1er_arm[max(indx_in)+1:min(indx_out)]
-SAR=SAR[max(indx_in)+1:min(indx_out)]
-Tau=Tau[max(indx_in)+1:min(indx_out)]
-xi_M_0=xi_M_0[max(indx_in)+1:min(indx_out)]
-cociente_f1_f0=cociente_f1_f0[max(indx_in)+1:min(indx_out)]
-cociente_f2_f0=cociente_f2_f0[max(indx_in)+1:min(indx_out)]
-long_arrays=long_arrays[max(indx_in)+1:min(indx_out)]
+Remanencia_Am=Remanencia_Am[indices_to_stay[0]:indices_to_stay[-1]+1]
+Coercitividad_kAm=Coercitividad_kAm[indices_to_stay[0]:indices_to_stay[-1]+1]
+Campo_maximo=Campo_maximo[indices_to_stay[0]:indices_to_stay[-1]+1]
+Mag_max=Mag_max[indices_to_stay[0]:indices_to_stay[-1]+1]
+Frec_fund=Frec_fund[indices_to_stay[0]:indices_to_stay[-1]+1]
+Magnitud_1er_arm=Magnitud_1er_arm[indices_to_stay[0]:indices_to_stay[-1]+1]
+Defasaje_1er_arm=Defasaje_1er_arm[indices_to_stay[0]:indices_to_stay[-1]+1]
+SAR=SAR[indices_to_stay[0]:indices_to_stay[-1]+1]
+Tau=Tau[indices_to_stay[0]:indices_to_stay[-1]+1]
+xi_M_0=xi_M_0[indices_to_stay[0]:indices_to_stay[-1]+1]
+cociente_f1_f0=cociente_f1_f0[indices_to_stay[0]:indices_to_stay[-1]+1]
+cociente_f2_f0=cociente_f2_f0[indices_to_stay[0]:indices_to_stay[-1]+1]
+long_arrays=long_arrays[indices_to_stay[0]:indices_to_stay[-1]+1]
 #%%
 #CICLO PROMEDIO
 if Ciclo_promedio:
@@ -682,16 +680,9 @@ if Ciclo_promedio:
     for i in range(1,len(fnames_m)):
 
         t0=t0 + Ciclos_tiempo[i][:min_len_t]
-        #min_len_H_ua = min(len(H0_ua),len(campo_ua_m))
         H0_ua=H0_ua+ Ciclos_eje_H_ua[i][:min_len_H_ua]
-        
-        # min_len_M_ua = min(len(M0_ua),len(magnetizacion_ua_m))
         M0_ua=M0_ua+ Ciclos_eje_M_ua[i][:min_len_M_ua]
-        
-        # min_len_H = min(len(H0),len(campo_m))
         H0=H0+Ciclos_eje_H[i][:min_len_H]
-        
-        # min_len_M = min(len(M0),len(magnetizacion_m_filtrada))
         M0=M0+Ciclos_eje_M_filt[i][:min_len_M]
 
         Num_ciclos_m=len(fnames_m)
@@ -718,7 +709,7 @@ ciclo_out.meta['comments'] = [f'Temperatura_=_{np.mean(temp_m)}',
                                 f'frecuencia_Hz_=_{frec_final_m}',
                                 f'Promedio de {Num_ciclos_m} ciclos\n']
 
-output_file = os.path.join(output_dir, os.path.commonprefix(fnames_m) + '_ciclo_promedio_H_M.txt')# Especificar la ruta completa del archivo de salida
+output_file = os.path.join(output_dir, os.path.commonprefix(list(fnames_m)) + '_ciclo_promedio_H_M.txt')# Especificar la ruta completa del archivo de salida
 ascii.write(ciclo_out,output_file,names=encabezado,overwrite=True,delimiter='\t',formats=formato)
  
 
@@ -729,7 +720,7 @@ ascii.write(ciclo_out,output_file,names=encabezado,overwrite=True,delimiter='\t'
 if Analisis_de_Fourier==1:
     fig = plt.figure(figsize=(9,7),constrained_layout=True)
     ax = fig.add_subplot(1,1,1)
-    for i in range(len(fnames_m)):
+    for i in range(0,len(fnames_m)):
             color = cmap(norm(temp_m[i]))
             plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M_filt[i],'-',color=color)
 
@@ -748,7 +739,7 @@ plt.xlabel('H (kA/m)',fontsize=15)
 plt.ylabel('M (A/m)',fontsize=15)
 plt.title(fecha_graf + f'   {N_armonicos_impares} arm impares',loc='left',fontsize=13)
 plt.suptitle('Ciclos de histéresis (filtrado impar)',fontsize=20)
-plt.savefig(os.path.join(output_dir,os.path.commonprefix(fnames_m)+'_ciclos_MH.png'),dpi=300,facecolor='w')
+plt.savefig(os.path.join(output_dir,os.path.commonprefix(list(fnames_m))+'_ciclos_MH.png'),dpi=300,facecolor='w')
 # plt.show()
 
 #%% GUARDO RESULTADOS.TXT
@@ -819,7 +810,7 @@ resultados_out.meta['comments'] = ['Configuracion:',
 
 # ascii.write(resultados_out,os.path.commonprefix(fnames_m)+'_resultados.txt',
 #             names=encabezado,overwrite=True,delimiter='\t',formats=formato)
-output_file2=os.path.join(output_dir,os.path.commonprefix(fnames_m)+'_resultados.txt')
+output_file2=os.path.join(output_dir,os.path.commonprefix(list(fnames_m))+'_resultados.txt')
 ascii.write(resultados_out,output_file2,names=encabezado,overwrite=True,
 delimiter='\t',formats=formato)
 
