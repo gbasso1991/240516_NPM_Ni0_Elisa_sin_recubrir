@@ -607,14 +607,14 @@ for fp in filepaths_to_move:
 
 #%% PLOTEO TODOS LOS CICLOS RAW
 indices_to_stay = np.setdiff1d(np.arange(len(fnames_m)-1), indx_discard)
-
+cmap = mpl.colormaps['viridis']
 if graficos['Ciclos_HM_m_todos']==1:
     fig = plt.figure(figsize=(9,7),constrained_layout=True)
     ax = fig.add_subplot(1,1,1)
 
 
     for i in indx_discard: #Ciclos in
-        plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],'o',label=f'{fnames_m[i].split("_")[-1].split(".")[0]:<4s}',alpha=0.7)
+        plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M[i],'.',label=f'{fnames_m[i].split("_")[-1].split(".")[0]:<4s}',alpha=0.5)
 
     for i in indices_to_stay: #Ciclos aceptados
         color = cmap(norm(temp_m[i]))
@@ -637,11 +637,10 @@ plt.title(f'{frec_nombre[0]/1000:>3.0f} kHz - {round(np.mean(Campo_maximo)/1e3):
 plt.savefig(os.path.join(output_dir,os.path.commonprefix(list(fnames_m))+'_ciclos_MH_raw.png'),dpi=300,facecolor='w')
 
 #%% RECORTO LISTAS 
-
 fnames_m = [fnames_m[i] for i in indices_to_stay]
 temp_m = [temp_m[i] for i in indices_to_stay]
 time_m=[time_m[i] for i in indices_to_stay]
-#%%
+
 Ciclo_descancelacion_H=Ciclos_eje_H[-1]
 Ciclo_descancelacion_M=Ciclos_eje_M[-1]
 Ciclo_descancelacion_M_filt=Ciclos_eje_M_filt[-1]
@@ -663,8 +662,7 @@ xi_M_0=[xi_M_0[i] for i in indices_to_stay]
 # cociente_f1_f0=[cociente_f1_f0[i] for i in indices_to_stay]
 # cociente_f2_f0=[cociente_f2_f0[i] for i in indices_to_stay]
 long_arrays=[long_arrays[i] for i in indices_to_stay]
-#%%
-#CICLO PROMEDIO
+#%% CICLO PROMEDIO
 if Ciclo_promedio:
     min_len_t = min([len(f) for f in Ciclos_tiempo])
     min_len_H_ua=min([len(f) for f in Ciclos_eje_H_ua])
