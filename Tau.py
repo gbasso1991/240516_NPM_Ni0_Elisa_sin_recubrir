@@ -195,12 +195,13 @@ def Tau_promedio(filepath,recorto_extremos=20):
     return Meq , H_mag, max(H)/1000, Tau , Tau_prom , fig
 #%% 135 15 
 identif_1='135_15'
-dir = os.path.join(os.getcwd(),'Fe_Ni_1.5_recubierta',identif_1)
+dir = os.path.join(os.getcwd(),identif_1)
 archivos_resultados = [f for f in os.listdir(dir) if  fnmatch.fnmatch(f, '*resultados*')]
 archivos_resultados.sort()
 filepaths = [os.path.join(dir,f) for f in archivos_resultados]
-print(archivos_resultados)
-
+for ar in archivos_resultados:
+    print(ar)
+    
 meta_1,files_1,time_1,temperatura_1,Mr_1,Hc_1,campo_max_1,mag_max_1,xi_M_0_1,frecuencia_fund_1,magnitud_fund_1,dphi_fem_1,SAR_1,tau_1_1,N1 = lector_resultados(filepaths[0])
 meta_2,files_2,time_2,temperatura_2,Mr_2,Hc_2,campo_max_2,mag_max_2,xi_M_0_2,frecuencia_fund_2,magnitud_fund_2,dphi_fem_2,SAR_2,tau_1_2,N2 = lector_resultados(filepaths[1])
 meta_3,files_3,time_3,temperatura_3,Mr_3,Hc_3,campo_max_3,mag_max_3,xi_M_0_3,frecuencia_fund_3,magnitud_fund_3,dphi_fem_3,SAR_3,tau_1_3,N3 = lector_resultados(filepaths[2])
@@ -217,8 +218,28 @@ plt.legend()
 plt.grid()
 plt.ylabel(r'$\tau$ (s)')
 plt.xlabel('Indx')
-plt.title(identif_1)
+plt.title(r'$\tau$ - '+ identif_1)
 plt.show()
+
+archivos_ciclos = [f for f in os.listdir(dir) if  fnmatch.fnmatch(f, '*promedio*')]
+archivos_ciclos.sort()
+filepaths = [os.path.join(dir,f) for f in archivos_ciclos]
+for ac in archivos_ciclos:
+    print(ac)
+
+fig1,ax1=plt.subplots(constrained_layout=True)
+
+for i,fp in enumerate(filepaths):
+    t,H,M,metadata=lector_ciclos(fp)
+    ax1.plot(H,M,label=i+1)
+
+ax1.set_ylabel('M (A/m)')
+ax1.set_xlabel('H (A/m)')
+ax1.legend()
+ax1.grid()
+plt.title('Ciclos promedio - '+identif_1)
+plt.show()
+
 #%%
 
 # archivos_ciclos_prom = [f for f in os.listdir(dir) if  fnmatch.fnmatch(f, '*ciclo_promedio*')]
@@ -287,11 +308,12 @@ plt.show()
 
 #%% 265 15
 identif_4='265_15'
-dir = os.path.join(os.getcwd(),'Fe_Ni_1.5_recubierta',identif_4)
+dir = os.path.join(os.getcwd(),identif_4)
 archivos_resultados = [f for f in os.listdir(dir) if  fnmatch.fnmatch(f, '*resultados*')]
 archivos_resultados.sort()
 filepaths = [os.path.join(dir,f) for f in archivos_resultados]
-print(archivos_resultados)
+for ar in archivos_resultados:
+    print(ar)
 
 meta_1,files_1,time_1,temperatura_1,Mr_1,Hc_1,campo_max_1,mag_max_1,xi_M_0_1,frecuencia_fund_1,magnitud_fund_1,dphi_fem_1,SAR_1,tau_4_1,N1 = lector_resultados(filepaths[0])
 
@@ -315,6 +337,25 @@ plt.title(identif_4)
 #plt.savefig('tau_'+identif_4+'.png',dpi=300)
 plt.show()
 
+
+archivos_ciclos = [f for f in os.listdir(dir) if  fnmatch.fnmatch(f, '*promedio*')]
+archivos_ciclos.sort()
+filepaths = [os.path.join(dir,f) for f in archivos_ciclos]
+for ac in archivos_ciclos:
+    print(ac)
+
+fig2,ax2=plt.subplots(constrained_layout=True)
+
+for i,fp in enumerate(filepaths):
+    t,H,M,metadata=lector_ciclos(fp)
+    ax2.plot(H,M,label=i+1)
+
+ax2.set_ylabel('M (A/m)')
+ax2.set_xlabel('H (A/m)')
+ax2.legend()
+ax2.grid()
+plt.title('Ciclos promedio - '+identif_4)
+plt.show()
 #%% PLOT ALL
 
 fig,(ax1,ax4)=plt.subplots(2,1,figsize=(8,7),constrained_layout=True)
@@ -326,14 +367,12 @@ ax1.axhline(tau1.nominal_value,0,1,c='tab:red',label=f'{tau1} s')
 ax1.axhspan(tau1.nominal_value-tau1.std_dev,tau1.nominal_value+tau1.std_dev,alpha=0.5,color='tab:red')
 ax1.set_title(identif_1)
 
-
 # ax2.plot(tau_2_1,'.-',label='1')
 # ax2.plot(tau_2_2,'.-',label='2')
 # ax2.plot(tau_2_3,'.-',label='3')
 # ax2.axhline(tau2.nominal_value,0,1,c='tab:red',label=f'{tau2} s')
 # ax2.axhspan(tau2.nominal_value-tau2.std_dev,tau2.nominal_value+tau2.std_dev,alpha=0.5,color='tab:red')
 # ax2.set_title(identif_2)
-
 
 # ax3.plot(tau_3_1,'.-',label='1')
 # ax3.plot(tau_3_2,'.-',label='2')
@@ -356,44 +395,59 @@ for ax in [ax1,ax4]:
     ax.set_ylabel(r'$\tau$ (s)')
     ax.legend()
     ax.grid()
-plt.suptitle('Fe Ni 1.5 @citrico',fontsize=14)
-plt.savefig('tau_FeNi15@citrico_240516.png',dpi=300)
+plt.suptitle('Ni=0 s/recubrir - repeticion',fontsize=14)
+plt.savefig('tau_Ni0_sin_recubrir.png',dpi=300)
 
 #%% FeNi 1.5 s/ recubrir 
 
-identif_5='135_15'
-dir = os.path.join(os.getcwd(),'Fe_Ni_1.5_sin_recubrir',identif_5)
-archivos_resultados = [f for f in os.listdir(dir) if  fnmatch.fnmatch(f, '*resultados*')]
-archivos_resultados.sort()
-filepaths = [os.path.join(dir,f) for f in archivos_resultados]
-print(archivos_resultados)
+# identif_5='135_15'
+# dir = os.path.join(os.getcwd(),'Fe_Ni_1.5_sin_recubrir',identif_5)
+# archivos_resultados = [f for f in os.listdir(dir) if  fnmatch.fnmatch(f, '*resultados*')]
+# archivos_resultados.sort()
+# filepaths = [os.path.join(dir,f) for f in archivos_resultados]
+# print(archivos_resultados)
 
-meta_1,files_1,time_1,temperatura_1,Mr_1,Hc_1,campo_max_1,mag_max_1,xi_M_0_1,frecuencia_fund_1,magnitud_fund_1,dphi_fem_1,SAR_1,tau_5_1,N1 = lector_resultados(filepaths[0])
+# meta_1,files_1,time_1,temperatura_1,Mr_1,Hc_1,campo_max_1,mag_max_1,xi_M_0_1,frecuencia_fund_1,magnitud_fund_1,dphi_fem_1,SAR_1,tau_5_1,N1 = lector_resultados(filepaths[0])
 
-meta_2,files_2,time_2,temperatura_2,Mr_2,Hc_2,campo_max_2,mag_max_2,xi_M_0_2,frecuencia_fund_2,magnitud_fund_2,dphi_fem_2,SAR_2,tau_5_2,N2 = lector_resultados(filepaths[1])
+# meta_2,files_2,time_2,temperatura_2,Mr_2,Hc_2,campo_max_2,mag_max_2,xi_M_0_2,frecuencia_fund_2,magnitud_fund_2,dphi_fem_2,SAR_2,tau_5_2,N2 = lector_resultados(filepaths[1])
 
-meta_3,files_3,time_3,temperatura_3,Mr_3,Hc_3,campo_max_3,mag_max_3,xi_M_0_3,frecuencia_fund_3,magnitud_fund_3,dphi_fem_3,SAR_3,tau_5_3,N3 = lector_resultados(filepaths[2])
+# meta_3,files_3,time_3,temperatura_3,Mr_3,Hc_3,campo_max_3,mag_max_3,xi_M_0_3,frecuencia_fund_3,magnitud_fund_3,dphi_fem_3,SAR_3,tau_5_3,N3 = lector_resultados(filepaths[2])
 
-tau5 = np.mean(unumpy.uarray([np.mean(tau_5_1),np.mean(tau_5_2),np.mean(tau_5_3)],[np.std(tau_5_1),np.std(tau_5_2),np.std(tau_5_3)]))
-print(f'tau = {tau5} s')
+# tau5 = np.mean(unumpy.uarray([np.mean(tau_5_1),np.mean(tau_5_2),np.mean(tau_5_3)],[np.std(tau_5_1),np.std(tau_5_2),np.std(tau_5_3)]))
+# print(f'tau = {tau5} s')
 
-fig,ax= plt.subplots()
-ax.plot(tau_5_1,'.-',label='1')
-ax.plot(tau_5_2,'.-',label='2')
-ax.plot(tau_5_3,'.-',label='3')
-ax.axhline(tau5.nominal_value,0,1,c='tab:red',label=f'{tau5} s')
-ax.axhspan(tau5.nominal_value-tau5.std_dev,tau5.nominal_value+tau5.std_dev,alpha=0.5,color='tab:red')
+# fig,ax= plt.subplots()
+# ax.plot(tau_5_1,'.-',label='1')
+# ax.plot(tau_5_2,'.-',label='2')
+# ax.plot(tau_5_3,'.-',label='3')
+# ax.axhline(tau5.nominal_value,0,1,c='tab:red',label=f'{tau5} s')
+# ax.axhspan(tau5.nominal_value-tau5.std_dev,tau5.nominal_value+tau5.std_dev,alpha=0.5,color='tab:red')
 
-ax.text(0.25,1/5,rf'$\tau$ = {tau5} s',bbox=dict(alpha=0.8),transform=ax.transAxes,ha='center', va='center')
-plt.legend()
-plt.grid()
-plt.ylabel(r'$\tau$ (s)')
-plt.xlabel('Indx')
-plt.title(identif_5)
-plt.title('Fe Ni 1.5 s/recubrir')
-plt.savefig('tau_FeNi15_sin_recubrir_240516.png',dpi=300)
+# ax.text(0.25,1/5,rf'$\tau$ = {tau5} s',bbox=dict(alpha=0.8),transform=ax.transAxes,ha='center', va='center')
+# plt.legend()
+# plt.grid()
+# plt.ylabel(r'$\tau$ (s)')
+# plt.xlabel('Indx')
+# plt.title(identif_5)
+# plt.title('Fe Ni 1.5 s/recubrir')
+# plt.savefig('tau_FeNi15_sin_recubrir_240516.png',dpi=300)
+# plt.show()
+#%% PLOTEO TODOS LOS CICLOS PROMEDIO
+# Copiar el contenido de la primera figura al nuevo subplot
+new_fig, (new_ax1, new_ax2) = plt.subplots(1, 2, figsize=(10, 5))
+
+for line in ax1.get_lines():
+    new_ax1.plot(line.get_xdata(), line.get_ydata(), label=line.get_label())
+    new_ax1.set_title(ax1.get_title())
+    new_ax1.legend(loc='best')
+
+# Copiar el contenido de la segunda figura al nuevo subplot
+for line in ax2.get_lines():
+    new_ax2.plot(line.get_xdata(), line.get_ydata(), label=line.get_label())
+    new_ax2.set_title(ax2.get_title())
+    new_ax2.legend(loc='best')
+
+# Ajustar los diseños
+plt.tight_layout()
 plt.show()
-#%%
-
-
-
+# %%
