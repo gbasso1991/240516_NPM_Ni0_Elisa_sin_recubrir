@@ -638,30 +638,31 @@ plt.savefig(os.path.join(output_dir,os.path.commonprefix(list(fnames_m))+'_ciclo
 
 #%% RECORTO LISTAS 
 
-fnames_m=fnames_m[indices_to_stay]
-temp_m=temp_m[indices_to_stay]
-time_m=time_m[indices_to_stay[0]:indices_to_stay[-1]+1]
+fnames_m = [fnames_m[i] for i in indices_to_stay]
+temp_m = [temp_m[i] for i in indices_to_stay]
+time_m=[time_m[i] for i in indices_to_stay]
+#%%
 Ciclo_descancelacion_H=Ciclos_eje_H[-1]
 Ciclo_descancelacion_M=Ciclos_eje_M[-1]
 Ciclo_descancelacion_M_filt=Ciclos_eje_M_filt[-1]
 
-Ciclos_eje_H=Ciclos_eje_H[indices_to_stay[0]:indices_to_stay[-1]+1] 
-Ciclos_eje_M=Ciclos_eje_M[indices_to_stay[0]:indices_to_stay[-1]+1]
-Ciclos_eje_M_filt=Ciclos_eje_M_filt[indices_to_stay[0]:indices_to_stay[-1]+1]
+Ciclos_eje_H=[Ciclos_eje_H[i] for i in indices_to_stay] 
+Ciclos_eje_M=[Ciclos_eje_M[i] for i in indices_to_stay]
+Ciclos_eje_M_filt=[Ciclos_eje_M_filt[i] for i in indices_to_stay]
 
-Remanencia_Am=Remanencia_Am[indices_to_stay[0]:indices_to_stay[-1]+1]
-Coercitividad_kAm=Coercitividad_kAm[indices_to_stay[0]:indices_to_stay[-1]+1]
-Campo_maximo=Campo_maximo[indices_to_stay[0]:indices_to_stay[-1]+1]
-Mag_max=Mag_max[indices_to_stay[0]:indices_to_stay[-1]+1]
-Frec_fund=Frec_fund[indices_to_stay[0]:indices_to_stay[-1]+1]
-Magnitud_1er_arm=Magnitud_1er_arm[indices_to_stay[0]:indices_to_stay[-1]+1]
-Defasaje_1er_arm=Defasaje_1er_arm[indices_to_stay[0]:indices_to_stay[-1]+1]
-SAR=SAR[indices_to_stay[0]:indices_to_stay[-1]+1]
-Tau=Tau[indices_to_stay[0]:indices_to_stay[-1]+1]
-xi_M_0=xi_M_0[indices_to_stay[0]:indices_to_stay[-1]+1]
-cociente_f1_f0=cociente_f1_f0[indices_to_stay[0]:indices_to_stay[-1]+1]
-cociente_f2_f0=cociente_f2_f0[indices_to_stay[0]:indices_to_stay[-1]+1]
-long_arrays=long_arrays[indices_to_stay[0]:indices_to_stay[-1]+1]
+Remanencia_Am=[Remanencia_Am[i] for i in indices_to_stay]
+Coercitividad_kAm=[Coercitividad_kAm[i] for i in indices_to_stay]
+Campo_maximo=[Campo_maximo[i] for i in indices_to_stay]
+Mag_max=[Mag_max[i] for i in indices_to_stay]
+Frec_fund=[Frec_fund[i] for i in indices_to_stay]
+Magnitud_1er_arm=[Magnitud_1er_arm[i] for i in indices_to_stay]
+Defasaje_1er_arm=[Defasaje_1er_arm[i] for i in indices_to_stay]
+SAR=[SAR[i] for i in indices_to_stay]
+Tau=[Tau[i] for i in indices_to_stay]
+xi_M_0=[xi_M_0[i] for i in indices_to_stay]
+# cociente_f1_f0=[cociente_f1_f0[i] for i in indices_to_stay]
+# cociente_f2_f0=[cociente_f2_f0[i] for i in indices_to_stay]
+long_arrays=[long_arrays[i] for i in indices_to_stay]
 #%%
 #CICLO PROMEDIO
 if Ciclo_promedio:
