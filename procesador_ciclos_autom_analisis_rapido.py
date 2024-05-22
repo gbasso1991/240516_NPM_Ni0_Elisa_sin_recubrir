@@ -713,7 +713,7 @@ ascii.write(ciclo_out,output_file,names=encabezado,overwrite=True,delimiter='\t'
  
 
 #%% PLOTEO TODOS LOS CICLOS FILTRADOS IMPAR
-# cmap = mpl.colormaps['jet'] 
+cmap = mpl.colormaps['jet'] 
 # norm = plt.Normalize(temp_m.min(), temp_m.max())# Crear un rango de colores basado en las temperaturas y el cmap
 
 if Analisis_de_Fourier==1:
@@ -724,7 +724,7 @@ if Analisis_de_Fourier==1:
             plt.plot(Ciclos_eje_H[i]/1000,Ciclos_eje_M_filt[i],'-',color=color)
 
     plt.plot(Ciclo_descancelacion_H/1000,Ciclo_descancelacion_M_filt,'-',color='k',label='Descancelación')
-    plt.plot(H_prom/1000,M_prom,'-.',label=f'Ciclo promedio ({Num_ciclos_m} ciclos)')
+    plt.plot(H_prom/1000,M_prom,'.-',label=f'Ciclo promedio ({Num_ciclos_m} ciclos)')
 plt.legend(loc='lower right',fancybox=True)
 
 # Configurar la barra de colores
